@@ -60,15 +60,25 @@ class DecisionTree:
         
         # For every dataset feature
         for f_idx in range(n_cols):
+            # print(X[0,:f_idx])
+            if isinstance(X[0,:f_idx], str):
+                string = True
+            else:
+                string = False
             X_curr = X[:, f_idx]
+            # print(X_curr)
             # For every unique value of that feature
             for threshold in np.unique(X_curr):
                 # Construct a dataset and split it to the left and right parts
                 # Left part includes records lower or equal to the threshold
                 # Right part includes records higher than the threshold
                 df = np.concatenate((X, y.reshape(1, -1).T), axis=1)
-                df_left = np.array([row for row in df if row[f_idx] <= threshold])
-                df_right = np.array([row for row in df if row[f_idx] > threshold])
+                if not string:
+                    df_left = np.array([row for row in df if row[f_idx] <= threshold])
+                    df_right = np.array([row for row in df if row[f_idx] > threshold])
+                else:
+                    df_left = np.array([row for row in df if row[f_idx] == threshold])
+                    df_right = np.array([row for row in df if row[f_idx] != threshold])
 
                 # Do the calculation only if there's data in both subsets
                 if len(df_left) > 0 and len(df_right) > 0:
