@@ -6,7 +6,7 @@ class DecisionTree:
     '''
     Class which implements a decision tree classifier algorithm.
     '''
-    def __init__(self, min_samples_split=2, max_depth=5):
+    def __init__(self, min_samples_split=5, max_depth=4):
         self.min_samples_split = min_samples_split
         self.max_depth = max_depth
         self.root = None
@@ -66,7 +66,7 @@ class DecisionTree:
             else:
                 string = False
             X_curr = X[:, f_idx]
-            # print(X_curr)
+
             # For every unique value of that feature
             for threshold in np.unique(X_curr):
                 # Construct a dataset and split it to the left and right parts
@@ -91,6 +91,7 @@ class DecisionTree:
                     # if the current split is better than the previous best
                     gain = self._information_gain(y, y_left, y_right)
                     if gain > best_info_gain:
+                        # print(gain)
                         best_split = {
                             'feature_index': f_idx,
                             'threshold': threshold,
@@ -116,8 +117,10 @@ class DecisionTree:
         if n_rows >= self.min_samples_split and depth <= self.max_depth:
             # Get the best split
             best = self._best_split(X, y)
+            # print(best)
             # If the split isn't pure
-            if best['gain'] > 0:
+            if best != {} and best['gain'] > 0:
+                # print('best gain')
                 # Build a tree on the left
                 left = self._build(
                     X=best['df_left'][:, :-1], 
@@ -160,18 +163,29 @@ class DecisionTree:
         :param tree: built tree
         :return: float, predicted class
         '''
+
         # Leaf node
         if tree.value != None:
             return tree.value
         feature_value = x[tree.feature]
-        
-        # Go to the left
-        if feature_value <= tree.threshold:
-            return self._predict(x=x, tree=tree.data_left)
-        
-        # Go to the right
-        if feature_value > tree.threshold:
-            return self._predict(x=x, tree=tree.data_right)
+        # print(feature_value, tree.threshold)
+        if isinstance(feature_value, str):
+            # Go to the left
+            if feature_value == tree.threshold:
+                return self._predict(x=x, tree=tree.data_left)
+            
+            # Go to the right
+            if feature_value != tree.threshold:
+                return self._predict(x=x, tree=tree.data_right)
+        else:
+            # Go to the left
+            if feature_value <= tree.threshold:
+                return self._predict(x=x, tree=tree.data_left)
+            
+            # Go to the right
+            if feature_value > tree.threshold:
+                return self._predict(x=x, tree=tree.data_right)
+
         
     def predict(self, X):
         '''
