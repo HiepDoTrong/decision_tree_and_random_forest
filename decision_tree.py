@@ -61,10 +61,6 @@ class DecisionTree:
         # For every dataset feature
         for f_idx in range(n_cols):
             # print(X[0,:f_idx])
-            if isinstance(X[0,:f_idx], str):
-                string = True
-            else:
-                string = False
             X_curr = X[:, f_idx]
 
             # For every unique value of that feature
@@ -73,7 +69,7 @@ class DecisionTree:
                 # Left part includes records lower or equal to the threshold
                 # Right part includes records higher than the threshold
                 df = np.concatenate((X, y.reshape(1, -1).T), axis=1)
-                if not string:
+                if not isinstance(threshold, str):
                     df_left = np.array([row for row in df if row[f_idx] <= threshold])
                     df_right = np.array([row for row in df if row[f_idx] > threshold])
                 else:
@@ -119,26 +115,27 @@ class DecisionTree:
             best = self._best_split(X, y)
             # print(best)
             # If the split isn't pure
-            if best != {} and best['gain'] > 0:
-                # print('best gain')
-                # Build a tree on the left
-                left = self._build(
-                    X=best['df_left'][:, :-1], 
-                    y=best['df_left'][:, -1], 
-                    depth=depth + 1
-                )
-                right = self._build(
-                    X=best['df_right'][:, :-1], 
-                    y=best['df_right'][:, -1], 
-                    depth=depth + 1
-                )
-                return Node(
-                    feature=best['feature_index'], 
-                    threshold=best['threshold'], 
-                    data_left=left, 
-                    data_right=right, 
-                    gain=best['gain']
-                )
+            if len(best) > 0:
+                if best['gain'] > 0:
+                    # print('best gain')
+                    # Build a tree on the left
+                    left = self._build(
+                        X=best['df_left'][:, :-1], 
+                        y=best['df_left'][:, -1], 
+                        depth=depth + 1
+                    )
+                    right = self._build(
+                        X=best['df_right'][:, :-1], 
+                        y=best['df_right'][:, -1], 
+                        depth=depth + 1
+                    )
+                    return Node(
+                        feature=best['feature_index'], 
+                        threshold=best['threshold'], 
+                        data_left=left, 
+                        data_right=right, 
+                        gain=best['gain']
+                    )
         # Leaf node - value is the most common target value 
         return Node(
             value=Counter(y).most_common(1)[0][0]
@@ -195,4 +192,5 @@ class DecisionTree:
         :return: np.array, predicted classes
         '''
         # Call the _predict() function for every observation
+        # print('X')
         return [self._predict(x, self.root) for x in X]

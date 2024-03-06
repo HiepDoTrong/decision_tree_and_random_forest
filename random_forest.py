@@ -1,4 +1,5 @@
 from collections import Counter
+import threading
 from decision_tree import DecisionTree
 import numpy as np
 
@@ -13,6 +14,7 @@ class RandomForest:
         self.max_depth = max_depth
         # Will store individually trained decision trees
         self.decision_trees = []
+        self._lock = threading.Lock()
         
     @staticmethod
     def _sample(X, y):
@@ -24,31 +26,48 @@ class RandomForest:
         :return: tuple (sample of features, sample of target)
         '''
         n_rows, n_cols = X.shape
+        X_bag, y_bag = X.copy(), y.copy()
         # Sample with replacement
         samples = np.random.choice(a=n_rows, size=n_rows, replace=True)
-        features = np.random.choice(a=n_cols, size=int(np.sqrt(n_cols)), replace=False)
-        X = X[samples]
-        y = y[samples]
-        X = X[:, features]
-        # samples = np.random.choice(a=n_rows, size=n_rows, replace=True)
-        # return X[samples], y[samples]
+        X_bag = X_bag[samples]
+        y_bag = y_bag[samples]
+        # features = np.random.choice(a=n_cols, size=n_cols - int(np.sqrt(n_cols)), replace=False)
+        # X_bag[:, features] = 0
 
-        return X, y
-        
+        return X_bag, y_bag
+    
+    def _fit_tree(self, clf, X, y):
+        clf.fit(X, y)
+        with self._lock:
+            self.decision_trees.append(clf)
+
+    # def fit(self, X, y):
+    #     # Reset decision_trees
+    #     self.decision_trees = []
+    #     threads = []
+    #     for _ in range(self.num_trees):
+    #         clf = DecisionTree(
+    #             min_samples_split=self.min_samples_split,
+    #             max_depth=self.max_depth
+    #         )
+    #         _X, _y = self._sample(X, y)
+    #         t = threading.Thread(target=self._fit_tree, args=(clf, _X, _y))
+    #         t.start()
+    #         threads.append(t)
+
+    #     # Wait for all threads to finish
+    #     for t in threads:
+    #         t.join()
+
+
     def fit(self, X, y):
-        '''
-        Trains a Random Forest classifier.
-        
-        :param X: np.array, features
-        :param y: np.array, target
-        :return: None
-        '''
         # Reset
-        if len(self.decision_trees) > 0:
-            self.decision_trees = []
+        self.decision_trees = []
             
+        # Build each tree of the forest
         num_built = 0
         while num_built < self.num_trees:
+            
             clf = DecisionTree(
                 min_samples_split=self.min_samples_split,
                 max_depth=self.max_depth
@@ -60,6 +79,7 @@ class RandomForest:
             # Save the classifier
             self.decision_trees.append(clf)
             num_built += 1
+            
 
         
     def predict(self, X):
@@ -73,6 +93,7 @@ class RandomForest:
         y = []
         for tree in self.decision_trees:
             y.append(tree.predict(X))
+            # print('tree')
         
         # Reshape so we can find the most common value
         y = np.swapaxes(a=y, axis1=0, axis2=1)
